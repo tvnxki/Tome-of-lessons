@@ -40,12 +40,12 @@ abstract class Animal {
 }
 
 class Bowl {
-    private int foodAmount; // текущее количество еды
-    private final int capacity; // вместимость миски
+    private int foodAmount;
+    private final int capacity;
 
     public Bowl(int capacity) {
         this.capacity = capacity;
-        this.foodAmount = 0; // начинаем с пустой миски
+        this.foodAmount = 0;
     }
 
 
@@ -110,7 +110,7 @@ class Cat extends Animal {
             this.appetite = appetite;
         }
         this.isFull = false;
-        incrCatsCount(); // Увеличиваем счетчик котов
+        incrCatsCount();
     }
 
     @Override
