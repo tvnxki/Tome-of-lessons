@@ -2,10 +2,8 @@ import java.util.*;
 
 public class Main {
     public static void main(String[] args) {
-        // Создаём коллекцию студентов
         Set<Student> students = new HashSet<>();
 
-        // Добавляем студентов с оценками
         students.add(new Student("Иван Иванов", "ФПиТ-12", 1, Map.of("Математика", 4, "Физика", 5, "Тестирование", 4)));
         students.add(new Student("Андрей Никитин", "ФПиТ-12", 1, Map.of("Математика", 3, "Физика", 3, "Тестирование", 2)));
         students.add(new Student("Алексей Сидоров", "ФПиТ-12", 2, Map.of("Математика", 5, "Физика", 4, "Тестирование", 5)));
