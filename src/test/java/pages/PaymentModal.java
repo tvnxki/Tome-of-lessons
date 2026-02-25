@@ -6,6 +6,7 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
+import io.qameta.allure.Step;
 
 import java.time.Duration;
 import java.util.LinkedHashMap;
@@ -17,6 +18,7 @@ public class PaymentModal {
     private final WebDriver driver;
     private final WebDriverWait wait;
 
+    // Окно оплаты
     private final By root = By.xpath(
             "//div[contains(@class,'app-wrapper__content')] | //section[contains(@class,'payment')]"
     );
@@ -31,6 +33,7 @@ public class PaymentModal {
         return wait.until(ExpectedConditions.visibilityOfElementLocated(root));
     }
 
+    @Step("Получение информации о телефонном номере")
     public String getDisplayedPhone() {
         By by = By.xpath(".//div[contains(@class,'pay-description__text')]//span");
         return java.util.Optional.ofNullable(scope().findElement(by).getText())
@@ -39,6 +42,7 @@ public class PaymentModal {
                 .trim();
     }
 
+    @Step("Получение информации о отображаемой сумме")
     public String getDisplayedAmount() {
         By by = By.xpath(".//div[contains(@class,'pay-description__cost')]//span");
         return java.util.Optional.ofNullable(scope().findElement(by).getText())
@@ -47,6 +51,7 @@ public class PaymentModal {
                 .trim();
     }
 
+    @Step("Получаем плейсхолдеры полей карты")
     public Map<String, String> getCardPlaceholders() {
         Map<String, String> res = new LinkedHashMap<>();
         By[] locators = new By[] {
@@ -68,11 +73,13 @@ public class PaymentModal {
         return res;
     }
 
+    @Step("Получаем текст кнопки оплаты")
     public String getContinueButtonText() {
         By by = By.xpath(".//button[.//span[contains(text(),'Оплатить')]]");
         return scope().findElement(by).getText().replace('\u00A0',' ').trim();
     }
 
+    @Step("Есть ли иконки платёжных систем в поп-ап окне")
     public boolean hasPaymentIcons() {
         By iconsContainer = By.xpath(".//div[contains(@class,'icons-container')]");
         try {

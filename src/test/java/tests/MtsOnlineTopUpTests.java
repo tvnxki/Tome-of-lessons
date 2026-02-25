@@ -10,6 +10,7 @@ import org.testng.annotations.Test;
 import pages.CookieBanner;
 import pages.OnlineTopUpBlock;
 import pages.PaymentModal;
+import io.qameta.allure.*;
 
 import java.time.Duration;
 import java.util.Map;
@@ -17,9 +18,14 @@ import java.util.Set;
 
 import static org.testng.Assert.*;
 
+@Epic("MTS")
+@Feature("Онлайн пополнение без комиссии")
 public class MtsOnlineTopUpTests extends BaseTest {
     private final String BASE_URL = "https://www.mts.by/";
 
+    @Story("UI: titleIsCorrect")
+    @Owner("tvnxki(A)")
+    @Severity(SeverityLevel.NORMAL)
     @Test(description = "Проверка названия блока «Онлайн пополнение без комиссии»")
     public void titleIsCorrect() {
         driver.get(BASE_URL);
@@ -31,6 +37,9 @@ public class MtsOnlineTopUpTests extends BaseTest {
                 "Заголовок блока некорректный: " + title);
     }
 
+    @Story("UI: paymentLogosVisible")
+    @Owner("tvnxki(A)")
+    @Severity(SeverityLevel.NORMAL)
     @Test(description = "Проверка наличия логотипов платёжных систем")
     public void paymentLogosVisible() {
         driver.get(BASE_URL);
@@ -40,6 +49,9 @@ public class MtsOnlineTopUpTests extends BaseTest {
         assertTrue(block.hasKnownPaymentLogos(), "Логотипы платёжных систем не найдены");
     }
 
+    @Story("UI: moreDetailsWorks")
+    @Owner("tvnxki(A)")
+    @Severity(SeverityLevel.NORMAL)
     @Test(description = "Проверка перехода по ссылке «Подробнее о сервисе»")
     public void moreDetailsWorks() {
         driver.get(BASE_URL);
@@ -53,6 +65,9 @@ public class MtsOnlineTopUpTests extends BaseTest {
         assertNotEquals(after, before, "URL не изменился после клика по ссылке «Подробнее о сервисе»");
     }
 
+    @Story("UI: checkAllServiceTypesPlaceholders")
+    @Owner("tvnxki(A)")
+    @Severity(SeverityLevel.NORMAL)
     @Test(description = "Поиск различных услуг")
     public void checkAllServiceTypesPlaceholders() {
         driver.get("https://www.mts.by/");
@@ -70,6 +85,9 @@ public class MtsOnlineTopUpTests extends BaseTest {
         }
     }
 
+    @Story("UI: fillAndContinue")
+    @Owner("tvnxki(A)")
+    @Severity(SeverityLevel.NORMAL)
     @Test(description = "Проверка варианта «Услуги связи»: заполнение полей, нажатие «Продолжить», окно оплаты")
     public void fillAndContinue() {
         driver.get("https://www.mts.by/");
@@ -78,30 +96,35 @@ public class MtsOnlineTopUpTests extends BaseTest {
         OnlineTopUpBlock block = new OnlineTopUpBlock(driver);
         block.openTab(OnlineTopUpBlock.PaymentTab.MOBILE);
         block.setPhone("297777777");
-        block.setAmount("250");
+        block.setAmount("100");
         Set<String> before = driver.getWindowHandles();
         block.clickContinue();
         switchToCheckoutContext(driver, before, 30);
 
         PaymentModal modal = new PaymentModal(driver);
 
+        //телефонный номер
         String phoneRaw = modal.getDisplayedPhone();
         String phoneDigits = phoneRaw.replaceAll("\\D", "");
         Assert.assertTrue(phoneDigits.contains("375297777777"),
                 "Телефон отображается неверно: " + phoneRaw);
 
+        //сумма зачисления
         String amountText = modal.getDisplayedAmount();
         String amountNum = amountText.replaceAll("[^\\d.,]", "").replace(",", ".");
-        Assert.assertTrue(amountNum.startsWith("250"),
+        Assert.assertTrue(amountNum.startsWith("100"),
                 "Сумма отображается неверно: " + amountText);
 
+        //кнопка оплаты
         String buttonText = modal.getContinueButtonText();
         Assert.assertTrue(buttonText.toLowerCase().contains("оплат"),
                 "Кнопка оплаты не найдена или неверна: " + buttonText);
 
+        //плейсхолдеры поля карт
         Map<String, String> placeholders = modal.getCardPlaceholders();
         Assert.assertFalse(placeholders.isEmpty(), "Плейсхолдеры полей карты не найдены");
 
+        //иконки платежных систем
         Assert.assertTrue(modal.hasPaymentIcons(), "Нет иконок платёжных систем");
     }
 
