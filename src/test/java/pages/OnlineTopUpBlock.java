@@ -5,31 +5,41 @@ import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.openqa.selenium.Keys;
 import java.time.Duration;
-import java.util.Set;
+import java.util.*;
 
 public class OnlineTopUpBlock {
+    public enum PaymentTab {
+        MOBILE("Услуги связи"),
+        HOME_INTERNET("Домашний интернет"),
+        INSTALLMENT("Рассрочка"),
+        DEBT("Задолженность");
+
+        public final String title;
+        PaymentTab(String title) { this.title = title; }
+    }
+
     private final WebDriver driver;
     private final WebDriverWait wait;
     private final By root = By.xpath(
-            "//section[.//h2[contains(normalize-space(.), 'Онлайн пополнение без комиссии')]]"
+            "//section[.//h2[contains(normalize-space(.), 'Онлайн пополнение без комиссии')]]");
+    private final By openSelectOverlay = By.xpath(
+            "//*[contains(@class,'select__options') or contains(@class,'select _open')]"
     );
-    private final By openSelectOverlay = By.cssSelector(".select__options, .select._open .select__options");
-
 
     public OnlineTopUpBlock(WebDriver driver){
         this.driver = driver;
         this.wait = new WebDriverWait(driver, Duration.ofSeconds(12));
     }
 
-    private void scrollIntoView(WebElement el) {
-        ((JavascriptExecutor) driver).executeScript(
-                "arguments[0].scrollIntoView({block:'center'});", el);
-    }
-
     private WebElement scope(){
         WebElement el = wait.until(ExpectedConditions.visibilityOfElementLocated(root));
         scrollIntoView(el);
         return el;
+    }
+
+    private void scrollIntoView(WebElement el) {
+        ((JavascriptExecutor) driver).executeScript(
+                "arguments[0].scrollIntoView({block:'center'});", el);
     }
 
     private boolean isMac() {
@@ -59,30 +69,30 @@ public class OnlineTopUpBlock {
 
     public String getTitle() {
         String title = scope().findElement(By.xpath(".//h2")).getText()
-                .replace('\u00A0', ' ')
-                .replaceAll("\\s+", " ")
+                .replace('\u00A0', ' ')//пробел
+                .replaceAll("\\s+", " ")//перенос
                 .trim();
         System.out.println("Заголовок блока: " + title);
         return title.toLowerCase();
     }
 
     public boolean hasKnownPaymentLogos() {
-        String[] keywords = {"Visa", "MasterCard", "Белкарт", "MIR", "МИР", "Apple Pay", "Google Pay"};
+        String[] keywords = {"Visa", "Verified By Visa", "MasterCard", "MasterCard Secure Code", "Белкарт", "MIR", "МИР", "Apple Pay", "Google Pay"};
+        boolean foundAny = false;
 
         for (String word : keywords) {
             By by = By.xpath(
                     ".//img[contains(@alt, '" + word + "')]" +
-                            " | .//*[name()='svg' and contains(@aria-label, '" + word + "')]"
+                            " | .//*[name()='svg' and (contains(@aria-label, '" + word + "') or contains(@title, '" + word + "'))]"
             );
-            try {
-                WebElement logo = scope().findElement(by);
+            for (WebElement logo : scope().findElements(by)) {
                 if (logo.isDisplayed()) {
                     System.out.println("Найден логотип: " + word);
-                    return true;
+                    foundAny = true;
                 }
-            } catch (NoSuchElementException ignored) {}
+            }
         }
-        return false;
+        return foundAny;
     }
 
     public void clickMoreDetails() {
@@ -101,17 +111,54 @@ public class OnlineTopUpBlock {
         wait.until(d -> !d.getCurrentUrl().isEmpty());
     }
 
-    public void chooseMobileServices() {
-        By tab = By.xpath(
-                ".//button[contains(.,'Услуги связи')]"
-                        + " | .//a[contains(.,'Услуги связи')]"
-                        + " | .//label[contains(.,'Услуги связи')]"
-        );
-        WebElement el = scope().findElement(tab);
+    public void openTab(PaymentTab tab) {
+        By tabBy = By.xpath(".//button[contains(.,'" + tab.title + "')]"
+                + " | .//a[contains(.,'" + tab.title + "')]"
+                + " | .//label[contains(.,'" + tab.title + "')]");
+        WebElement el = scope().findElement(tabBy);
         scrollIntoView(el);
-        System.out.println("Выбрали вкладку: Услуги связи");
+        System.out.println("--> Выбираем вкладку: " + tab.title);
         safeClick(el);
         closeAnyOpenSelect();
+    }
+
+    public void selectServiceType(String typeName) {
+        WebElement dropdown = scope().findElement(By.xpath(".//div[contains(@class,'select__wrapper')]"));
+        WebElement header = dropdown.findElement(By.xpath(".//button[contains(@class,'select__header')]"));
+        scrollIntoView(header);
+        System.out.println("--> Открываем список типов услуг");
+        safeClick(header);
+
+        By listVisible = By.xpath(".//ul[contains(@class,'select__list') and contains(@style,'opacity')]");
+        wait.until(ExpectedConditions.visibilityOfElementLocated(listVisible));
+
+        By option = By.xpath("//li[contains(@class,'select__item')]" +
+                "//p[normalize-space(text())='" + typeName + "']");
+        WebElement item = dropdown.findElement(option);
+        System.out.println("--> Выбираем вариант: " + typeName);
+        safeClick(item);
+
+        wait.until(ExpectedConditions.invisibilityOfElementLocated(listVisible));
+    }
+
+    public Map<String, String> getVisiblePlaceholders() {
+        WebElement block = scope();
+        Map<String, String> result = new LinkedHashMap<>();
+        List<WebElement> inputs = block.findElements(By.xpath(
+                ".//input[not(@type='hidden') and not(contains(@style,'display:none'))]"
+        ));
+        for (WebElement input : inputs) {
+            String id = input.getAttribute("id");
+            String name = input.getAttribute("name");
+            String placeholder = input.getAttribute("placeholder");
+
+            if (placeholder != null && !placeholder.isBlank()) {
+                String key = (name != null && !name.isBlank()) ? name : id;
+                result.put(key, placeholder.trim());
+                System.out.println("--> placeholder [" + key + "] = \"" + placeholder.trim() + "\"");
+            }
+        }
+        return result;
     }
 
     public void setPhone(String phone) {
@@ -148,20 +195,6 @@ public class OnlineTopUpBlock {
         scrollIntoView(btn);
         System.out.println("Нажимаем кнопку «Продолжить»");
         safeClick(btn);
-    }
-
-    public boolean nextStepVisible() {
-        try {
-            WebElement marker = new WebDriverWait(driver, Duration.ofSeconds(8))
-                    .until(ExpectedConditions.visibilityOfElementLocated(
-                            By.xpath("//h1|//h2|//div[contains(@class,'step') or contains(@class,'success') or contains(.,'Оплата')]")
-                    ));
-            System.out.println("Переход на следующий шаг подтверждён");
-            return marker.isDisplayed();
-        } catch (TimeoutException e) {
-            System.out.println("Следующий шаг не найден!");
-            return false;
-        }
     }
 
     public String currentUrl() {
